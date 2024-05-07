@@ -1,0 +1,113 @@
+10 ;"udpconnect.bas"
+20 ;bank n line 10,Nnnn
+30 ;save "udpconnect.bnk" bank n
+40 ;
+50 ;This code can be used to
+60 ;create a two-way UDP WiFi
+70 ;connection between two ZX
+80 ;Spectrum Next devices.
+90 ;
+100 ;Call InitEspDriver() first
+110 ;to set up the driver.
+120 ;
+130 ;Call InitComms(mode,IP)
+140 ;to set up the connection
+150 ;where 'mode' is:
+160 ; 0 = Server
+170 ; 1 = Client
+180 ;
+190 ;The mode only determines
+200 ;which port numbers to use
+210 ;for communication between
+220 ;the two machines
+230 ;
+240 ;This procedure returns 0
+250 ;if the network connection
+260 ;was successful
+270 ;
+280 ;Once a connection is made,
+290 ;call Handshake(name$) to
+300 ;Fully connect to the othe
+310 ;device and to exchange
+320 ;player names
+330 ;
+340 ;The procedure returns 0 if
+350 ;the handshake succeeds,
+360 ;along with the remote
+370 ;player's name
+380 ;
+390 ;Handshake will timeout if
+400 ;no connection is made
+410 ;after thirty tries
+420 RUN AT 3
+430 PROC InitEspDriver()
+440 PROC InitComms(0,"192.168.50.226") TO err
+450 IF err=1 THEN PRINT "Could not open connection": STOP
+460 PROC handshake("Steve") TO %a,n$
+470 IF %a=0 THEN PRINT "Could not connect": STOP
+480 STOP
+490 DEFPROC InitEspDriver()
+500 ON ERROR ENDPROC
+510 .install /nextzxos/espat.drv
+520 LOAD "/nextzxos/espat.sys" BANK 33,0,8192
+530 DRIVER 78,1,33
+540 DRIVER 78,6,35
+550 DRIVER 78,5,96,1024
+560 DRIVER 78,9,0 TO %p
+570 DRIVER 78,3
+580 ENDPROC
+590 DEFPROC InitComms(%a,i$)
+600 ON ERROR GO TO %620
+610 CLOSE # 7
+620 ON ERROR GO TO %640
+630 CLOSE # 8
+640 ON ERROR
+650 %b=41982:%c=41983
+660 IF %a=1 THEN %b=41983:%c=41982
+670 c$="": ON ERROR PROC PrintStreamError(c$) : ENDPROC =1
+680 OPEN # 7,"D>N"
+690 c$="D>N>UDP,"+i$+","+ STR$ (%b)+","+ STR$ (%c)
+700 OPEN # 8,c$
+710 ENDPROC =0
+720 DEFPROC handshake(n$)
+730 PRINT "Waiting for remote connection"
+740 %a=0:%c=0:b$=""
+750 RUN AT 2
+760 REPEAT
+770 PRINT #8;"47HELLO74"
+780 PRINT "."; : PAUSE 50
+790 DIM #8 TO %b
+800 IF %b > 0:
+810 INPUT #8; LINE b$
+820 IF b$="47HELLO74" THEN %a=1
+830 ENDIF
+840 %c+=1
+850 REPEAT UNTIL (%a=1) OR (%c=30)
+860 IF %a=1:
+870 PAUSE 50: PRINT #8;"47HELLO74"
+880 PRINT : PRINT "Player connected!"
+890 ELSE
+900 RUN AT 3: PRINT : PRINT "Player not found": ENDPROC =0,""
+910 ENDIF
+920 m$="": REPEAT
+930 PRINT #8;n$
+940 PAUSE 50: DIM #8 TO %b
+950 IF %b > 0 THEN INPUT #8; LINE m$
+960 REPEAT UNTIL m$ <> "" AND m$ <> "47HELLO74"
+970 PRINT "Player name: ";m$
+980 PAUSE 100: DIM #8 TO %b: IF %b > 0 THEN INPUT #8; LINE a$
+990 RUN AT 3
+1000 ENDPROC =%a,m$
+1010 DEFPROC PrintStreamError(c$)
+1020 PRINT ERROR $: PRINT c$
+1030 DIM #7 TO %a
+1040 REPEAT : WHILE %a > 0
+1050 INPUT #7; LINE a$
+1060 PRINT a$
+1070 DIM #7 TO %a
+1080 REPEAT UNTIL 0
+1090 ON ERROR GO TO %1120
+1100 RETURN #7 TO %a: PRINT "Channel #7 error=";%a
+1110 ON ERROR GO TO %1130
+1120 RETURN #8 TO %a: PRINT "Channel #8 error=";%a
+1130 ENDPROC
