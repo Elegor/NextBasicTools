@@ -49,6 +49,8 @@
 490 DEFPROC InitEspDriver()
 500 ON ERROR ENDPROC
 510 .install /nextzxos/espat.drv
+515 ;The banks are hardcoded here,
+516 ;but can be assigned dynamically
 520 LOAD "/nextzxos/espat.sys" BANK 33,0,8192
 530 DRIVER 78,1,33
 540 DRIVER 78,6,35
